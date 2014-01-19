@@ -29,8 +29,18 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Label="YltProperties">
+    <YltTools>$(SolutionDir)packages\YaccLexTools.0.2.0\tools\</YltTools>
+    <GplexTool>"$(YltTools)gplex.exe"</GplexTool>
+    <GppgTool>"$(YltTools)gppg.exe"</GppgTool>
+    <Parsers>TinyC</Parsers>
+  </PropertyGroup>
+  <PropertyGroup Label="GenerateTinyCProperties">
+    <TinyCParser>$(ProjectDir)Parsers\TinyC</TinyCParser>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -40,9 +50,51 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class1.cs" />
+    <Compile Include="GplexBuffers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ShiftReduceParserCode.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup Label="TinyCFiles">
+    <Compile Include="Parsers\TinyC.Parser.cs">
+      <DependentUpon>TinyC.parser</DependentUpon>
+    </Compile>
+    <Compile Include="Parsers\TinyC.Parser.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TinyC.Language.grammar.y</DependentUpon>
+    </Compile>
+    <Compile Include="Parsers\TinyC.Scanner.cs">
+      <DependentUpon>TinyC.parser</DependentUpon>
+    </Compile>
+    <Compile Include="Parsers\TinyC.Scanner.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TinyC.Language.analyzer.lex</DependentUpon>
+    </Compile>
+    <None Include="Parsers\TinyC.Language.analyzer.lex">
+      <DependentUpon>TinyC.parser</DependentUpon>
+    </None>
+    <None Include="Parsers\TinyC.Language.grammar.y">
+      <DependentUpon>TinyC.parser</DependentUpon>
+    </None>
+    <None Include="Parsers\TinyC.parser" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="BeforeBuild" DependsOnTargets="YltBuildGen" />
+  <Target Name="YltBuildGen" DependsOnTargets="GenerateTinyC" />
+  <Target Name="GenerateTinyC" Inputs="$(TinyCParser).Language.analyzer.lex;$(TinyCParser).Language.grammar.y" Outputs="$(TinyCParser).Scanner.Generated.cs;$(TinyCParser).Parser.Generated.cs">
+    <Message Text="Generating scanner for $(TinyCParser) ..." />
+    <Exec Command="$(GplexTool) &quot;/out:$(TinyCParser).Scanner.Generated.cs&quot; &quot;$(TinyCParser).Language.analyzer.lex&quot;" WorkingDirectory="$(ProjectDir)" Outputs="$(GenDir)Scanner.cs">
+      <Output TaskParameter="Outputs" ItemName="TinyCScanner" />
+    </Exec>
+    <Message Text="Generating parser for $(TinyCParser) ..." />
+    <Exec Command="$(GppgTool) /no-lines /gplex &quot;$(TinyCParser).Language.grammar.y&quot; &gt; &quot;$(TinyCParser).Parser.Generated.cs&quot;" WorkingDirectory="$(ProjectDir)" Outputs="$(TinyCParser).Parser.Generated.cs">
+      <Output TaskParameter="Outputs" ItemName="TinyC" />
+    </Exec>
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
